@@ -4,9 +4,9 @@ Trang web tĩnh (HTML/CSS/JS thuần, không cần build) — sẵn sàng deploy
 
 ## ⚠️ Lưu ý quan trọng
 
-Phần "RESEARCH TÌM KIẾM" (phân tích ngành nghề tự động bằng AI) được viết để chạy trong môi trường Claude Artifact
-(`window.claude.use('sample')`). Khi host trên GitHub Pages, biến `window.claude` sẽ **không tồn tại**, nên tính
-năng này sẽ tự động rơi vào chế độ dự phòng (hiển thị thông báo "chưa phân tích được" thay vì kết quả AI thật).
+Phần "RESEARCH TÌM KIẾM" gọi Gemini thông qua Vercel Function (`/api/analyze`). API key được giữ ở biến môi trường
+`GEMINI_API_KEY`, không bao giờ được đưa vào trình duyệt. Để chức năng hoạt động trên Vercel, thêm biến này tại
+**Project → Settings → Environment Variables**, sau đó redeploy.
 
 Các phần còn lại vẫn hoạt động bình thường:
 - 4 thẻ liên kết ra Notion
@@ -14,9 +14,8 @@ Các phần còn lại vẫn hoạt động bình thường:
 - Bảng so sánh (lưu trên trình duyệt người dùng qua localStorage)
 - Nút Zalo nổi + khối kết nối chuyên gia
 
-Nếu sau này bạn muốn AI research chạy thật trên tên miền riêng, cần dựng thêm một backend nhỏ (ví dụ Cloudflare
-Worker hoặc Vercel Function) gọi Anthropic API bằng API key riêng của bạn (không để lộ key ở phía trình duyệt).
-Cứ nhắn lại khi bạn sẵn sàng làm phần này, mình sẽ viết code backend + sửa file `index.html` để gọi qua đó.
+Mô hình mặc định là Gemini Flash để phản hồi nhanh và tối ưu chi phí. Bạn có thể đổi biến `MODEL` trong
+`api/analyze.js` nếu cần một mô hình khác.
 
 ## Cách đưa lên GitHub Pages
 

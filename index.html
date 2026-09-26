@@ -494,20 +494,6 @@
     if(saved){ comparedList = JSON.parse(saved) || []; }
   }catch(e){ comparedList = []; }
 
-  var sampleNs = null;
-  var sampleTried = false;
-
-  async function getSample(){
-    if(sampleTried) return sampleNs;
-    sampleTried = true;
-    try{
-      if(window.claude && typeof window.claude.use === 'function'){
-        sampleNs = await window.claude.use('sample');
-      }
-    }catch(e){ sampleNs = null; }
-    return sampleNs;
-  }
-
   function renderCompareTable(){
     var body = document.getElementById('compareBody');
     var empty = document.getElementById('compareEmpty');
@@ -548,19 +534,6 @@
     return String(str).replace(/[&<>"']/g, function(c){
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
-  }
-
-  function fallbackAnalysis(name){
-    return {
-      nganh: name,
-      tong_quan: 'Chưa thể phân tích tự động cho ngành "' + name + '" lúc này. Bạn có thể thử lại sau ít phút, hoặc liên hệ trực tiếp chuyên gia qua Zalo để được tư vấn chi tiết.',
-      xu_huong: 'Đang cập nhật.',
-      kha_thi_diem: 5,
-      kha_thi_ly_do: 'Chưa có đủ dữ liệu phân tích tự động cho ngành này.',
-      von_can_thiet: 'Chưa xác định',
-      ky_nang: ['Đang cập nhật'],
-      rui_ro: ['Chưa có dữ liệu phân tích tự động — nên tham khảo thêm ý kiến chuyên gia trước khi quyết định.']
-    };
   }
 
   function renderResult(data){
@@ -670,35 +643,20 @@
     loadingRow.classList.add('active');
     document.getElementById('resultBlock').classList.remove('active');
 
-    var ns = await getSample();
-    if(!ns){
-      renderResult(fallbackAnalysis(name));
-      loadingRow.classList.remove('active');
-      btn.disabled = false;
-      return;
-    }
-
-    var prompt = 'Bạn là chuyên gia phân tích thị trường và cố vấn khởi nghiệp tại Việt Nam. ' +
-      'Người dùng đang cân nhắc tham gia ngành nghề/lĩnh vực: "' + name + '". ' +
-      'Hãy phân tích NGẮN GỌN, THỰC TẾ, dễ hiểu cho người mới bắt đầu, dựa trên bối cảnh thị trường Việt Nam hiện nay. ' +
-      'Chỉ trả về DUY NHẤT một object JSON hợp lệ, không kèm markdown, không giải thích thêm, đúng theo schema sau (giữ nguyên tên field, giá trị bằng tiếng Việt):\n' +
-      '{\n' +
-      '  "nganh": "tên ngành nghề, viết hoa chữ cái đầu",\n' +
-      '  "tong_quan": "đoạn văn 2-4 câu tổng quan về ngành này",\n' +
-      '  "xu_huong": "đoạn văn 2-3 câu về xu hướng và tiềm năng phát triển",\n' +
-      '  "kha_thi_diem": số nguyên từ 1 đến 10 thể hiện độ khả thi tổng thể,\n' +
-      '  "kha_thi_ly_do": "1-2 câu giải thích vì sao chấm điểm như vậy",\n' +
-      '  "von_can_thiet": "mô tả ngắn mức vốn khởi điểm cần có, ví dụ khoảng tiền hoặc mức thấp/trung bình/cao",\n' +
-      '  "ky_nang": ["3-5 kỹ năng hoặc yêu cầu quan trọng, mỗi phần tử vài từ"],\n' +
-      '  "rui_ro": ["2-4 rủi ro cụ thể cần lưu ý, mỗi phần tử 1 câu"]\n' +
-      '}';
-
     try{
-      var data = await ns.json(prompt, { modelTier: 'default' });
-      if(!data || !data.nganh){ data = fallbackAnalysis(name); }
+      var response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({industry: name})
+      });
+      var payload = await response.json();
+      if(!response.ok) throw new Error(payload.error || 'Không thể phân tích lúc này.');
+      var data = payload.data;
+      if(!data || !data.nganh) throw new Error('Kết quả phân tích không hợp lệ.');
       renderResult(data);
     }catch(e){
-      renderResult(fallbackAnalysis(name));
+      document.getElementById('hintText').textContent = e.message || 'Không thể kết nối dịch vụ phân tích. Vui lòng thử lại sau.';
+      alert(e.message || 'Không thể kết nối dịch vụ phân tích. Vui lòng thử lại sau.');
     }finally{
       loadingRow.classList.remove('active');
       btn.disabled = false;
